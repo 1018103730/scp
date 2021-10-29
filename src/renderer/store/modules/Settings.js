@@ -5,12 +5,12 @@ const state = {
 }
 
 const mutations = {
-    updateSettings(state, settings, needUpdate = false) {
+    updateSettings(state, settings) {
+        console.log(settings)
         state.settings = settings
 
-        if (needUpdate) {
-            //todo 更新数据库
-        }
+        dbs.settings.update({_id: state.settings._id}, {$set: state.settings}, (err, numReplaced) => {
+        })
     },
     updateField(state, data) {
         state.settings[data.key] = data.value;

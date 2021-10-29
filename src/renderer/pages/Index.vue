@@ -30,7 +30,7 @@
       </ul>
       <el-dialog title="小工具" :visible.sync="isShowTool" width="80%">
         <el-button class="tool-btn"
-                   type="success" size="mini"
+                   type="info" size="mini"
                    round v-for="tool in tools"
                    @click="tool.method()">{{ tool.name }}
         </el-button>

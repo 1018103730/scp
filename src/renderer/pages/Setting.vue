@@ -1,7 +1,24 @@
 <template>
   <div id="settings">
     <top-nav></top-nav>
-    设置界面
+    <el-form ref="form" :model="form" label-width="80px" size="mini" label-position="top" class="from">
+      <el-form-item label="ID显示长度">
+        <el-input v-model="form.record_id_simple_length"></el-input>
+      </el-form-item>
+      <el-form-item label="内容显示长度">
+        <el-input v-model="form.record_content_simple_length"></el-input>
+      </el-form-item>
+      <el-form-item label="最大存储数量">
+        <el-input v-model="form.maximum_records_num"></el-input>
+      </el-form-item>
+      <el-form-item label="最长存储时间">
+        <el-input v-model="form.time_since_last_update_day"></el-input>
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" @click="onSubmit">修改设置</el-button>
+        <el-button>取消</el-button>
+      </el-form-item>
+    </el-form>
   </div>
 </template>
 
@@ -11,12 +28,27 @@ import TopNav from "../components/TopNav";
 export default {
   name: "settings",
   data() {
-    return {}
+    return {
+    }
+  },
+  computed:{
+    form(){
+      return this.$store.state.Settings.settings;
+    }
   },
   components: {TopNav},
   mounted() {
+  },
+  methods:{
+    onSubmit(){
+      this.$store.commit('Settings/updateSettings',this.form)
+    }
   }
 }
 </script>
 
-<style></style>
+<style>
+#settings .from{
+  margin: 20px;
+}
+</style>
