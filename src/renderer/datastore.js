@@ -7,6 +7,7 @@ let secret = 'miya';
 
 let recordsDBFilename = path.join(remote.app.getPath('userData'), '/scp_records.db')
 let settingsDBFilename = path.join(remote.app.getPath('userData'), '/scp_settings.db')
+console.log(recordsDBFilename)
 
 const records = new Datastore({
     autoload: true,
