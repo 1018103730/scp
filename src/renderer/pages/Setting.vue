@@ -17,6 +17,10 @@
       <el-form-item label="搜索时两端间距">
         <el-input v-model="form.margin_length_when_search"></el-input>
       </el-form-item>
+      <el-form-item label="关闭窗口后">
+        <el-radio v-model="form.close_window_type" label="background">后台运行</el-radio>
+        <el-radio v-model="form.close_window_type" label="exit">退出程序</el-radio>
+      </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="onSubmit">修改设置</el-button>
         <el-button>取消</el-button>
@@ -46,6 +50,7 @@ export default {
     onSubmit() {
       this.$store.commit('Settings/updateSettings', this.form)
       dbs.settings.update({_id: this.form._id}, {$set: this.form}, (err, numReplaced) => {
+        this.$electron.ipcRenderer.send('change-close-window-type', {type: this.form.close_window_type});
       })
     }
   }

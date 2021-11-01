@@ -465,7 +465,9 @@ body::-webkit-scrollbar-corner {
   padding: 0 5px;
   border-radius: 4px;
   line-height: 20px;
-  height: 20px;
+  height: 20px
+;
+  margin-top: 2px;
 }
 
 .tags span.search_tag {

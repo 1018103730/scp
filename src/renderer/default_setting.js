@@ -9,6 +9,8 @@ const settings = {
     time_since_last_update_day: 7,
     //搜索时两端显示的长度
     margin_length_when_search: 15,
+    //关闭窗口方式 background/exit
+    close_window_type: 'background',
 }
 
 export default settings

@@ -11,6 +11,7 @@ import Datastore from "nedb";
  * Set `__static` path to static files in production
  * https://simulatedgreg.gitbooks.io/electron-vue/content/en/using-static-assets.html
  */
+
 if (process.env.NODE_ENV !== 'development') {
     global.__static = require('path').join(__dirname, '/static').replace(/\\/g, '\\\\')
 }
@@ -18,7 +19,8 @@ if (process.env.NODE_ENV !== 'development') {
 let mainWindow
 let intervalKey
 
-let isMini = true;
+//关闭窗口是否最小化
+let closeWindowType = 'background';
 
 const winURL = process.env.NODE_ENV === 'development'
     ? `http://localhost:9080`
@@ -43,27 +45,35 @@ function createWindow() {
         height: 800,
         useContentSize: true,
         width: 500,
-        minWidth: 500
+        minWidth: 500,
+        show: false
     })
 
     mainWindow.loadURL(winURL)
 
-    mainWindow.on('close', (event) => {
-        if (isMini) {
-            //发送通知
-            const NOTIFICATION_TITLE = 'Scp'
-            const NOTIFICATION_BODY = '程序窗口已最小化,如需显示,可以进行一下操作:点击图标/点击通知/Shift+Ctrl+I'
-
-            let notify = new Notification({title: NOTIFICATION_TITLE, body: NOTIFICATION_BODY})
-            notify.on('click', () => {
-                mainWindow.show();
-            })
-
-            notify.show();
-            mainWindow.minimize();
-            event.preventDefault();
-        }
+    mainWindow.once('ready-to-show', () => {
+        mainWindow.show()
     })
+
+    mainWindow.on('close', closeWindow);
+}
+
+function closeWindow(event) {
+    if (closeWindowType === 'background') {
+        //发送通知
+        const NOTIFICATION_TITLE = 'Scp'
+        const NOTIFICATION_BODY = '程序窗口已最小化,如需显示,可以进行一下操作:点击图标/点击通知/Shift+Ctrl+I'
+
+        let notify = new Notification({title: NOTIFICATION_TITLE, body: NOTIFICATION_BODY})
+        notify.on('click', () => {
+            mainWindow.show();
+        })
+
+        notify.show();
+        mainWindow.minimize();
+        event.preventDefault();
+    } else {
+    }
 }
 
 app.on('ready', () => {
@@ -123,7 +133,6 @@ app.on('ready', () => {
                 })
             }
         })
-
     }, 100)
 
     createWindow();
@@ -158,7 +167,12 @@ const records = new Datastore({
     autoload: true,
     timestampData: true,
     filename: recordsDBFilename
-})
+});
+
+ipcMain.on('change-close-window-type', (err, args) => {
+    closeWindowType = args.type;
+    console.log(closeWindowType);
+});
 
 /**
  * Auto Updater
