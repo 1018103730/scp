@@ -104,7 +104,7 @@ app.on('ready', () => {
                     digest: type === 'text' ? ClipboardData.slice(0, 100) : '',
                     filepath: filepath,
                     score: score,
-                    tags: ''
+                    tags: type === 'text' ? '文字' : '图片'
                 });
 
                 //发送信息到渲染页面

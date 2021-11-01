@@ -14,7 +14,10 @@
 
         <div class="tags" v-if="(Array.from(tags)).length > 0 ">
           常用tags:
-          <span v-for="tag in tags" @click="search = tag">{{ tag }} </span>
+          <span v-for="tag in tags" @click="search === tag?search = '':search = tag"
+                :class="search !== tag?'default_tag':'search_tag'">
+            {{ tag }}
+          </span>
         </div>
       </div>
 
@@ -96,6 +99,7 @@ export default {
         'image': [
           {name: '显示大图', method: this.toolShowImage},
           {name: '删除数据', method: this.toolDeleteRecord},
+          {name: '生成DataUrl', method: this.toolImageToDataUrl},
           {name: "设置Tag", method: this.toolSetTags}
         ]
       },
@@ -131,6 +135,7 @@ export default {
       this.$prompt('多个标签可用","分隔', '标签设置', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
+        inputValue: this.toolRecord.tags,
       }).then(({value}) => {
         this.$dbs.records.update({_id: this.toolRecord._id}, {$set: {tags: value}}, (err, data) => {
           this.$message({
@@ -141,6 +146,11 @@ export default {
           this.refreshRecordsData();
         })
       });
+    },
+    toolImageToDataUrl() {
+      this.$electron.clipboard.writeText(this.parseImageFile(this.toolRecord.filepath));
+
+      this.$message.success({type: 'success', message: 'DateUrl已存入到剪切板中!'});
     },
     toolShowImage() {
       this.$alert('<img src="' + this.parseImageFile(this.toolRecord.filepath) + '">', '图片显示', {
@@ -456,5 +466,10 @@ body::-webkit-scrollbar-corner {
   border-radius: 4px;
   line-height: 20px;
   height: 20px;
+}
+
+.tags span.search_tag {
+  background: #444;
+  color: #fff;
 }
 </style>
