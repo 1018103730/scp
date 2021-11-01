@@ -76,6 +76,17 @@ function closeWindow(event) {
     }
 }
 
+//提取md5因子 用于减轻计算量
+function getMd5Factor(data) {
+    let len = parseInt(data.length);
+
+    let start = [0, 20];
+    let middle = [parseInt(len / 2) - 10, parseInt(len / 2) + 10];
+    let end = [len - 10, len];
+
+    return data.slice(...start) + data.slice(...middle) + data.slice(...end);
+}
+
 app.on('ready', () => {
     globalShortcut.register('Shift+Ctrl+I', () => {
         if (mainWindow) {
@@ -95,11 +106,11 @@ app.on('ready', () => {
         if (!image.isEmpty()) {
             type = 'image';
             ClipboardData = image.toPNG();
-            filename = md5(image.toDataURL());
+            filename = md5(getMd5Factor(image.toDataURL()));
         } else {
             //兜底
             ClipboardData = clipboard.readText();
-            filename = md5(ClipboardData);
+            filename = md5(getMd5Factor(ClipboardData));
         }
 
         filepath = path.join(app.getPath('userData'), '/caches/' + filename + '.tmp')
@@ -133,7 +144,7 @@ app.on('ready', () => {
                 })
             }
         })
-    }, 100)
+    }, 200)
 
     createWindow();
 })
@@ -169,9 +180,9 @@ const records = new Datastore({
     filename: recordsDBFilename
 });
 
+//切换不同的窗口关闭方式
 ipcMain.on('change-close-window-type', (err, args) => {
     closeWindowType = args.type;
-    console.log(closeWindowType);
 });
 
 /**
