@@ -101,14 +101,23 @@ app.on('ready', () => {
                     type: type,
                     digest: type === 'text' ? ClipboardData.slice(0, 100) : '',
                     filepath: filepath,
-                    score: score
+                    score: score,
+                    tags: ''
                 });
 
                 //发送信息到渲染页面
                 fs.writeFile(filepath, ClipboardData, 'utf-8', () => {
-                    if (mainWindow) {
-                        mainWindow.webContents.send('refresh-records-data', 'ping');
-                    }
+                    //设置文件大小
+                    fs.stat(filepath, (err, stat) => {
+                        //更新数据中的缓存文件大小
+                        records.update({hash: hash}, {$set: {size: stat.size}}, (err, numReplaced) => {
+                            //通知渲染线程刷新界面
+                            if (mainWindow) {
+                                mainWindow.webContents.send('refresh-records-data', 'ping');
+                            }
+                        })
+                    })
+
                 })
             }
         })
@@ -129,11 +138,6 @@ app.on('activate', () => {
         createWindow()
     }
 })
-
-ipcMain.on('write-tmp-file', (err, args) => {
-    fs.writeFile(args.filepath, args.ClipboardData, 'utf-8', (err) => {
-    })
-});
 
 ipcMain.on('set-clipboard', (err, args) => {
     if (args.type === 'image') {

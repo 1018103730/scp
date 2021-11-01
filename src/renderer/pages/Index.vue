@@ -2,14 +2,22 @@
   <keep-alive>
     <div id="app">
       <top-nav></top-nav>
-      <el-input :show-word-limit="show_word_limit"
-                :clearable="clearable"
-                placeholder="请输入搜索内容"
-                :autofocus='autofocus'
-                prefix-icon="el-icon-search"
-                size="mini"
-                v-model="search">
-      </el-input>
+      <div class="search">
+        <el-input :show-word-limit="show_word_limit"
+                  :clearable="clearable"
+                  placeholder="请输入搜索内容"
+                  :autofocus='autofocus'
+                  prefix-icon="el-icon-search"
+                  size="mini"
+                  v-model="search">
+        </el-input>
+
+        <div class="tags" v-if="(new Array(tags)).length > 0 ">
+          常用tags:
+          <span v-for="tag in tags" @click="search = tag">{{ tag }} </span>
+        </div>
+      </div>
+
       <ul id="records">
         <li v-for="record in records"
             :style="{order:record.score}"
@@ -19,12 +27,12 @@
             <small :title="record._id" @click="showTool(record)">
               {{ record._id.slice(0, settings.record_id_simple_length) }}
             </small>
-            <el-image
-                class="clipboard-image"
-                lazy
-                style="height: 60px;"
-                :src="parseImageFile(record.filepath)"
-                @click="setClipboardData(record)">
+            <el-image :title="record.size"
+                      class="clipboard-image"
+                      lazy
+                      style="height: 60px;"
+                      :src="parseImageFile(record.filepath)"
+                      @click="setClipboardData(record)">
             </el-image>
             <span class="time">
             {{ $moment(record.updatedAt).format('YYYY-MM-DD HH:mm:ss') }}
@@ -36,11 +44,12 @@
               {{ record._id.slice(0, settings.record_id_simple_length) }}
             </small>
 
-            <span style="display: inline-block" @click="setClipboardData(record)" v-if="search.length ===0">
+            <span style="display: inline-block" @click="setClipboardData(record)" v-if="search.length ===0"
+                  :title="record.size">
               {{ simpleContent(record.digest) }}
             </span>
             <span style="display: inline-block" @click="setClipboardData(record)" v-else
-                  v-html="searchContent(record)"></span>
+                  :title="record.size" v-html="searchContent(record)"></span>
 
             <span class="time">
             {{ $moment(record.updatedAt).format('YYYY-MM-DD HH:mm:ss') }}
@@ -72,6 +81,7 @@ export default {
       show_word_limit: true,
       search: '',
       records: [],
+      tags: [],
       isShowTool: false,
       toolRecord: null,
       intervalKey: null,
@@ -80,10 +90,13 @@ export default {
           {name: '显示全文', method: this.toolShowContent},
           {name: '去除头尾空格', method: this.toolTrim},
           {name: '删除数据', method: this.toolDeleteRecord},
-          {name: '提取手机号码', method: this.toolParsePhone}],
+          {name: '提取手机号码', method: this.toolParsePhone},
+          {name: "设置Tag", method: this.toolSetTags}
+        ],
         'image': [
           {name: '显示大图', method: this.toolShowImage},
           {name: '删除数据', method: this.toolDeleteRecord},
+          {name: "设置Tag", method: this.toolSetTags}
         ]
       },
     }
@@ -113,6 +126,21 @@ export default {
     },
     parseTmpFileSync(filepath) {
       return fs.readFileSync(filepath, 'utf-8');
+    },
+    toolSetTags() {
+      this.$prompt('多个标签可用","分隔', '标签设置', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+      }).then(({value}) => {
+        this.$dbs.records.update({_id: this.toolRecord._id}, {$set: {tags: value}}, (err, data) => {
+          this.$message({
+            type: 'success',
+            message: 'Tags设置成功!'
+          });
+
+          this.refreshRecordsData();
+        })
+      });
     },
     toolShowImage() {
       this.$alert('<img src="' + this.parseImageFile(this.toolRecord.filepath) + '">', '图片显示', {
@@ -184,12 +212,21 @@ export default {
       return content.slice(0, this.settings.record_content_simple_length) + tail;
     },
     searchContent(record) {
-      if (record.type !== 'text') return false;
-      let {content, offset} = this.searchContentFromDigest(record) || this.searchContentFromTmpFile(record);
+      let {
+        type,
+        content,
+        offset,
+        searchTag
+      } = this.searchContentFromTags(record) || this.searchContentFromDigest(record) || this.searchContentFromTmpFile(record);
       if (!content) return;
 
-      let replaceContent = '<span class="search-result">' + this.search + '</span>';
-      content = content.replace(this.search, replaceContent);
+      let searchContent = this.search;
+      if (searchTag) {
+        searchContent = searchTag;
+      }
+
+      let replaceContent = '<span class="search-result">' + searchContent + '</span>';
+      content = content.replace(searchContent, replaceContent);
 
       let marginLength = parseInt(this.settings.margin_length_when_search);
       let start = offset - marginLength;
@@ -200,6 +237,20 @@ export default {
       content = prefix + content.slice(start > 0 ? start : 0, end < content.length ? end : content.length) + suffix;
 
       return content;
+    },
+    searchContentFromTags(record) {
+      let tags = record.tags;
+      if (tags.length === 0) return false;
+      let searchTag = null;
+      for (let tag of tags.split(',')) {
+        let offset = tag.indexOf(this.search);
+        if (offset === -1) continue;
+
+        searchTag = tag;
+      }
+      if (!searchTag) return false;
+
+      return {type: 'tags', content: record.digest, offset: 0, searchTag: searchTag};
     },
     searchContentFromDigest(record) {
       let content = record.digest;
@@ -212,7 +263,7 @@ export default {
       let offset = content.indexOf(this.search);
       if (offset === -1) return false;
 
-      return {content: content, offset: offset};
+      return {type: 'digest', content: content, offset: offset};
     },
     searchContentFromTmpFile(record) {
       let content = this.parseTmpFileSync(record.filepath);
@@ -224,12 +275,22 @@ export default {
       let offset = content.indexOf(this.search);
       if (offset === -1) return false;
 
-      return {content: content, offset: offset};
+      return {types: 'file', content: content, offset: offset};
     },
     searchRecord(record) {
       if (this.search.length === 0) return true;
 
-      return this.parseTmpFileSync(record.filepath).indexOf(this.search) !== -1;
+      let tagsHas = () => {
+        return record.tags.indexOf(this.search) !== -1
+      };
+      let digestHas = () => {
+        return record.digest.indexOf(this.search) !== -1
+      };
+      let fileHas = () => {
+        return this.parseTmpFileSync(record.filepath).indexOf(this.search) !== -1
+      };
+
+      return tagsHas() || digestHas() || fileHas();
     },
     refreshRecordsData() {
       this.$dbs.records.loadDatabase();
@@ -252,6 +313,15 @@ export default {
       );
 
       this.$dbs.records.find({}, (err, data) => {
+        let tags = '';
+        for (let record of data) {
+          if (record.tags === '') continue;
+
+          tags += ',' + record.tags
+        }
+        tags = tags.slice(1, tags.length);
+        this.tags = new Set(tags.split(','));
+
         this.records = data;
       });
     }
@@ -327,11 +397,25 @@ export default {
 }
 
 .el-message-box__message p {
-  height: 300px;
-  overflow-y: scroll;
+  /*height: 300px;*/
+  /*overflow-y: scroll;*/
 }
 
 .clipboard-image img {
   width: auto !important;
+}
+
+.search {
+  margin: 10px;
+}
+
+.tags {
+  margin-top: 10px;
+  color: #888;
+  font-size: 12px;
+}
+
+.tags span {
+  cursor: pointer;
 }
 </style>
