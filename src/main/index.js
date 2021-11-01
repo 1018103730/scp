@@ -5,6 +5,8 @@ import md5 from 'md5';
 import moment from "moment";
 import Datastore from "nedb";
 
+// app.disableHardwareAcceleration();
+
 /**
  * Set `__static` path to static files in production
  * https://simulatedgreg.gitbooks.io/electron-vue/content/en/using-static-assets.html

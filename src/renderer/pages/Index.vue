@@ -12,7 +12,7 @@
                   v-model="search">
         </el-input>
 
-        <div class="tags" v-if="(new Array(tags)).length > 0 ">
+        <div class="tags" v-if="(Array.from(tags)).length > 0 ">
           常用tags:
           <span v-for="tag in tags" @click="search = tag">{{ tag }} </span>
         </div>
@@ -250,7 +250,7 @@ export default {
       }
       if (!searchTag) return false;
 
-      return {type: 'tags', content: record.digest, offset: 0, searchTag: searchTag};
+      return {type: 'tags', content: searchTag + ':' + record.digest, offset: 0, searchTag: searchTag};
     },
     searchContentFromDigest(record) {
       let content = record.digest;
@@ -313,15 +313,21 @@ export default {
       );
 
       this.$dbs.records.find({}, (err, data) => {
+        //设置tags
         let tags = '';
         for (let record of data) {
           if (record.tags === '') continue;
 
           tags += ',' + record.tags
         }
-        tags = tags.slice(1, tags.length);
-        this.tags = new Set(tags.split(','));
+        if (tags === '') {
+          this.tags = new Set();
+        } else {
+          tags = tags.slice(1, tags.length);
+          this.tags = new Set(tags.split(','));
+        }
 
+        //设置数据
         this.records = data;
       });
     }
@@ -330,11 +336,37 @@ export default {
 </script>
 
 <style>
+
 * {
   margin: 0px;
   padding: 0px;
   font-family: arial, sans-serif, '微软雅黑';
   word-break: break-word;
+}
+
+/*修改滚动条样式*/
+body::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+  /**/
+}
+
+body::-webkit-scrollbar-track {
+  background: rgb(239, 239, 239);
+  border-radius: 2px;
+}
+
+body::-webkit-scrollbar-thumb {
+  background: #bfbfbf;
+  border-radius: 10px;
+}
+
+body::-webkit-scrollbar-thumb:hover {
+  background: #333;
+}
+
+body::-webkit-scrollbar-corner {
+  background: #179a16;
 }
 
 #app {
@@ -417,5 +449,12 @@ export default {
 
 .tags span {
   cursor: pointer;
+  background: #efefef;
+  display: inline-block;
+  margin-right: 3px;
+  padding: 0 5px;
+  border-radius: 4px;
+  line-height: 20px;
+  height: 20px;
 }
 </style>
