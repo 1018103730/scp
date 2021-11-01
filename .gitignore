@@ -11,4 +11,5 @@ thumbs.db
 !.gitkeep
 .idea
 save.json
+yarn.lock
 

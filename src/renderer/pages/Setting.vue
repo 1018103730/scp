@@ -14,6 +14,9 @@
       <el-form-item label="最长存储时间">
         <el-input v-model="form.time_since_last_update_day"></el-input>
       </el-form-item>
+      <el-form-item label="搜索时两端间距">
+        <el-input v-model="form.margin_length_when_search"></el-input>
+      </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="onSubmit">修改设置</el-button>
         <el-button>取消</el-button>
@@ -24,31 +27,33 @@
 
 <script>
 import TopNav from "../components/TopNav";
+import dbs from "../datastore";
 
 export default {
   name: "settings",
   data() {
-    return {
-    }
+    return {}
   },
-  computed:{
-    form(){
+  computed: {
+    form() {
       return this.$store.state.Settings.settings;
     }
   },
   components: {TopNav},
   mounted() {
   },
-  methods:{
-    onSubmit(){
-      this.$store.commit('Settings/updateSettings',this.form)
+  methods: {
+    onSubmit() {
+      this.$store.commit('Settings/updateSettings', this.form)
+      dbs.settings.update({_id: this.form._id}, {$set: this.form}, (err, numReplaced) => {
+      })
     }
   }
 }
 </script>
 
 <style>
-#settings .from{
+#settings .from {
   margin: 20px;
 }
 </style>

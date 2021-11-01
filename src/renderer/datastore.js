@@ -4,17 +4,15 @@ import {remote} from 'electron'
 import crypto from 'crypto'
 
 let secret = 'miya';
-
-let recordsDBFilename = path.join(remote.app.getPath('userData'), '/scp_records.db')
-let settingsDBFilename = path.join(remote.app.getPath('userData'), '/scp_settings.db')
-console.log(recordsDBFilename)
+let recordsDBFilename = path.join(remote.app.getPath('userData'), '/saves/scp_records.db')
+let settingsDBFilename = path.join(remote.app.getPath('userData'), '/saves/scp_settings.db')
 
 const records = new Datastore({
     autoload: true,
     timestampData: true,
     filename: recordsDBFilename,
     // afterSerialization(doc) {
-    //     let cipher = crypto.createCipher('aes192', secret);
+    //     let cipher = crypto.createCipher('aes192', secret)refresh-records-data
     //     let enc = cipher.update(doc, 'utf8', 'hex')
     //     enc += cipher.final('hex')
     //
@@ -28,7 +26,6 @@ const records = new Datastore({
     //     return dec;
     // }
 })
-//
 records.ensureIndex({fieldName: 'hash', unique: true}, (err) => {
 })
 

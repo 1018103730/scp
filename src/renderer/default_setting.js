@@ -6,7 +6,9 @@ const settings = {
     //最大储存记录数量
     maximum_records_num: 500,
     //数据超过这个时间(单位:天)未更新即删除
-    time_since_last_update_day: 7
+    time_since_last_update_day: 7,
+    //搜索时两端显示的长度
+    margin_length_when_search: 15,
 }
 
 export default settings

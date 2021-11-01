@@ -18,8 +18,28 @@ Vue.config.productionTip = false
 Vue.prototype.$dbs = dbs
 Vue.prototype.$md5 = md5
 Vue.prototype.$moment = moment
-Vue.prototype.$defaultSettings = default_setting
 
+//初始化配置
+dbs.settings.count({}, (err, count) => {
+    if (count === 0) {
+        let doc = default_setting;
+        dbs.settings.insert(doc, (err, newDoc) => {
+            store.commit('Settings/updateSettings', newDoc);
+        })
+
+    } else {
+        dbs.settings.findOne({}, (err, data) => {
+            //todo  检测是否不存在默认配置中存在的的配置 如果有 就动态更新到数据库并写入data
+            for (let key in default_setting) {
+                if (!data[key]) {
+                    data[key] = default_setting[key];
+                }
+            }
+            //配置信息
+            store.commit('Settings/updateSettings', data);
+        });
+    }
+});
 
 Vue.use(ElementUI);
 

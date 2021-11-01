@@ -5,6 +5,7 @@
       <el-input :show-word-limit="show_word_limit"
                 :clearable="clearable"
                 placeholder="请输入搜索内容"
+                :autofocus='autofocus'
                 prefix-icon="el-icon-search"
                 size="mini"
                 v-model="search">
@@ -12,26 +13,45 @@
       <ul id="records">
         <li v-for="record in records"
             :style="{order:record.score}"
-            v-if="searchRecord(record.content)">
-          <small :title="record._id" @click="showTool(record)">
-            {{ record._id.slice(0, settings.record_id_simple_length) }}
-          </small>
+            v-if="searchRecord(record)">
+          <!--图片-->
+          <div v-if="record.type === 'image'">
+            <small :title="record._id" @click="showTool(record)">
+              {{ record._id.slice(0, settings.record_id_simple_length) }}
+            </small>
+            <el-image
+                class="clipboard-image"
+                lazy
+                style="height: 60px;"
+                :src="parseImageFile(record.filepath)"
+                @click="setClipboardData(record)">
+            </el-image>
+            <span class="time">
+            {{ $moment(record.updatedAt).format('YYYY-MM-DD HH:mm:ss') }}
+          </span>
+          </div>
+          <!--文字-->
+          <div v-else-if="record.type === 'text'">
+            <small :title="record._id" @click="showTool(record)">
+              {{ record._id.slice(0, settings.record_id_simple_length) }}
+            </small>
 
-          <span style="display: inline-block" @click="setClipboardData(record)" v-if="search.length ===0">
-        {{ simpleContent(record.content) }}
-        </span>
-          <span style="display: inline-block" @click="setClipboardData(record)" v-else
-                v-html="searchContent(record.content)"></span>
+            <span style="display: inline-block" @click="setClipboardData(record)" v-if="search.length ===0">
+              {{ simpleContent(record.digest) }}
+            </span>
+            <span style="display: inline-block" @click="setClipboardData(record)" v-else
+                  v-html="searchContent(record)"></span>
 
-          <span class="time">
-          {{ $moment(record.updatedAt).format('YYYY-MM-DD HH:mm:ss') }}
-        </span>
+            <span class="time">
+            {{ $moment(record.updatedAt).format('YYYY-MM-DD HH:mm:ss') }}
+          </span>
+          </div>
         </li>
       </ul>
-      <el-dialog title="小工具" :visible.sync="isShowTool" width="80%">
+      <el-dialog title="小工具" :visible.sync="isShowTool" width="80%" v-if="toolRecord">
         <el-button class="tool-btn"
                    type="info" size="mini"
-                   round v-for="tool in tools"
+                   round v-for="tool in tools[this.toolRecord.type]"
                    @click="tool.method()">{{ tool.name }}
         </el-button>
       </el-dialog>
@@ -41,11 +61,13 @@
 
 <script>
 import TopNav from "../components/TopNav";
+import fs from 'fs';
 
 export default {
   name: 'index',
   data() {
     return {
+      autofocus: true,
       clearable: true,
       show_word_limit: true,
       search: '',
@@ -53,12 +75,17 @@ export default {
       isShowTool: false,
       toolRecord: null,
       intervalKey: null,
-      tools: [
-        {name: '显示全文', method: this.toolShowContent},
-        {name: '去除头尾空格', method: this.toolTrim},
-        {name: '删除数据', method: this.toolDeleteRecord},
-        {name: '提取手机号码', method: this.toolParsePhone},
-      ],
+      tools: {
+        'text': [
+          {name: '显示全文', method: this.toolShowContent},
+          {name: '去除头尾空格', method: this.toolTrim},
+          {name: '删除数据', method: this.toolDeleteRecord},
+          {name: '提取手机号码', method: this.toolParsePhone}],
+        'image': [
+          {name: '显示大图', method: this.toolShowImage},
+          {name: '删除数据', method: this.toolDeleteRecord},
+        ]
+      },
     }
   },
   components: {TopNav},
@@ -68,54 +95,64 @@ export default {
     }
   },
   mounted() {
-    //初始化配置信息
-    this.initSettings();
-
-    //初始化records
     this.refreshRecordsData();
 
-    //提供剪贴板内容检测监听
-    this.$electron.ipcRenderer.on('checkClipboard', (event, args) => {
-      let content = this.$electron.clipboard.readText();
-      if (!content) return;
-      let hash = this.$md5(content);
-
-      this.$dbs.records.count({hash: hash}, (err, count) => {
-        if (count === 0) {
-          this.$dbs.records.insert({
-            hash: hash,
-            content: content,
-            score: this.getScore()
-          });
-
-          this.refreshRecordsData();
-        }
-      })
-    });
+    this.$electron.ipcRenderer.on('refresh-records-data', () => {
+      this.refreshRecordsData();
+    })
   },
   beforeDestroy() {
     clearInterval(this.intervalKey);
   },
   methods: {
+    parseImageFile(filepath) {
+      return this.$electron.nativeImage.createFromPath(filepath).toDataURL();
+    },
+    parseTmpFile(filepath, callback) {
+      return fs.readFile(filepath, 'utf-8', callback);
+    },
+    parseTmpFileSync(filepath) {
+      return fs.readFileSync(filepath, 'utf-8');
+    },
+    toolShowImage() {
+      this.$alert('<img src="' + this.parseImageFile(this.toolRecord.filepath) + '">', '图片显示', {
+        dangerouslyUseHTMLString: true
+      });
+    },
     toolParsePhone() {
       let reg = /1[345789][0-9]{9}/igm;
-      let phones = this.toolRecord.content.match(reg);
-      if (!phones) {
-        this.$message('无可提取的手机号码!');
-        return;
-      }
+      this.parseTmpFile(this.toolRecord.filepath, (err, data) => {
+        let phones = data.match(reg);
+        if (!phones) {
+          this.$message('无可提取的手机号码!');
+          return;
+        }
 
-      this.$alert(phones.join(' '), '处理结果');
+        this.$alert(phones.join(' '), '处理结果');
+      })
     },
     toolShowContent() {
-      this.$alert(this.toolRecord.content, '全部内容');
+      this.parseTmpFile(this.toolRecord.filepath, (err, data) => {
+        this.$alert(data, '全部内容', {
+          closeOnClickModal: true,
+          closeOnPressEscape: true
+        });
+      });
     },
     toolTrim() {
-      let content = this.toolRecord.content.replace(/(^\s*)|(\s*$)/g, "");
-      this.$alert(content, '处理结果');
+      this.parseTmpFile(this.toolRecord.filepath, (err, data) => {
+        let content = data.replace(/(^\s*)|(\s*$)/g, "");
+        this.$alert(content, '处理结果');
+      });
     },
     toolDeleteRecord() {
-      this.$dbs.records.remove({_id: this.toolRecord.id}, {}, (err, numRemoved) => {
+      this.$dbs.records.remove({_id: this.toolRecord._id}, {}, (err, numRemoved) => {
+        if (numRemoved <= 0) return;
+
+        //删除缓存文件
+        fs.unlink(this.toolRecord.filepath, (err) => {
+        })
+
         this.isShowTool = false;
         this.toolRecord = null;
 
@@ -132,7 +169,8 @@ export default {
       return this.$moment(new Date()).format('MMDDHHmmss');
     },
     setClipboardData(record) {
-      this.$electron.clipboard.writeText(record.content);
+      let type = record.type;
+      this.$electron.ipcRenderer.send('set-clipboard', {type: type, filepath: record.filepath})
 
       //更新排序score
       this.$dbs.records.update({_id: record._id}, {$set: {score: this.getScore()}}, (err, numReplaced) => {
@@ -145,38 +183,56 @@ export default {
       let tail = content.length > this.settings.record_content_simple_length ? '...' : '';
       return content.slice(0, this.settings.record_content_simple_length) + tail;
     },
-    searchContent(content) {
-      let offset = content.indexOf(this.search);
-      if (offset === -1) return;
+    searchContent(record) {
+      if (record.type !== 'text') return false;
+      let {content, offset} = this.searchContentFromDigest(record) || this.searchContentFromTmpFile(record);
+      if (!content) return;
+
+      let replaceContent = '<span class="search-result">' + this.search + '</span>';
+      content = content.replace(this.search, replaceContent);
+
+      let marginLength = parseInt(this.settings.margin_length_when_search);
+      let start = offset - marginLength;
+      let end = offset + replaceContent.length + marginLength;
+      let prefix = start > 0 ? '...' : '';
+      let suffix = end < content.length ? '...' : '';
+
+      content = prefix + content.slice(start > 0 ? start : 0, end < content.length ? end : content.length) + suffix;
+
+      return content;
+    },
+    searchContentFromDigest(record) {
+      let content = record.digest;
+      if (content.length === 0) return false;
+
       //html实体化
       content = content.replace(/</g, '&lt;')
       content = content.replace(/>/g, '&gt;');
 
-      content = content.replace(this.search, '<span class="search-result">' + this.search + '</span>');
+      let offset = content.indexOf(this.search);
+      if (offset === -1) return false;
 
-      return content;
+      return {content: content, offset: offset};
     },
-    searchRecord(content) {
-      if (content.length === 0) return true;
-      return content.indexOf(this.search) !== -1;
+    searchContentFromTmpFile(record) {
+      let content = this.parseTmpFileSync(record.filepath);
+
+      //html实体化
+      content = content.replace(/</g, '&lt;')
+      content = content.replace(/>/g, '&gt;');
+
+      let offset = content.indexOf(this.search);
+      if (offset === -1) return false;
+
+      return {content: content, offset: offset};
     },
-    initSettings() {
-      this.$dbs.settings.count({}, (err, count) => {
-        if (count === 0) {
-          let doc = this.$defaultSettings;
-          this.$dbs.settings.insert(doc, (err, newDoc) => {
-            this.$store.commit('Settings/updateSettings', newDoc);
-          })
+    searchRecord(record) {
+      if (this.search.length === 0) return true;
 
-        } else {
-          this.$dbs.settings.findOne({}, (err, data) => {
-            this.$store.commit('Settings/updateSettings', data);
-          });
-        }
-      });
-
+      return this.parseTmpFileSync(record.filepath).indexOf(this.search) !== -1;
     },
     refreshRecordsData() {
+      this.$dbs.records.loadDatabase();
       //清除超量/超时数据
       let num = 0;
       this.$dbs.records.find({/*todo 去除某些需要永久保存的数据*/}).sort({score: -1}).exec((err, docs) => {
@@ -208,6 +264,7 @@ export default {
   margin: 0px;
   padding: 0px;
   font-family: arial, sans-serif, '微软雅黑';
+  word-break: break-word;
 }
 
 #app {
@@ -263,5 +320,18 @@ export default {
   padding: 0 3px;
   border-radius: 3px;
   margin: 0 2px;
+}
+
+.el-message-box {
+  width: 80% !important;
+}
+
+.el-message-box__message p {
+  height: 300px;
+  overflow-y: scroll;
+}
+
+.clipboard-image img {
+  width: auto !important;
 }
 </style>
