@@ -80,9 +80,14 @@ function closeWindow(event) {
 function getMd5Factor(data) {
     let len = parseInt(data.length);
 
-    let start = [0, 20];
-    let middle = [parseInt(len / 2) - 10, parseInt(len / 2) + 10];
-    let end = [len - 10, len];
+    //长度小于指定长度 不做hash因子提取
+    if (len <= 1000) {
+        return data;
+    }
+
+    let start = [0, 100];
+    let middle = [parseInt(len / 2) - 50, parseInt(len / 2) + 50];
+    let end = [len - 100, len];
 
     return data.slice(...start) + data.slice(...middle) + data.slice(...end);
 }
