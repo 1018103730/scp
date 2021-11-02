@@ -24,7 +24,8 @@
       <ul id="records">
         <li v-for="record in records"
             :style="{order:record.score}"
-            v-if="searchRecord(record)">
+            v-if="searchRecord(record)"
+            @dblclick="setClipboardData(record)">
           <!--图片-->
           <div v-if="record.type === 'image'">
             <small :title="record._id" @click="showTool(record)">
@@ -34,8 +35,7 @@
                       class="clipboard-image"
                       lazy
                       style="height: 60px;"
-                      :src="parseImageFile(record.filepath)"
-                      @click="setClipboardData(record)">
+                      :src="parseImageFile(record.filepath)">
             </el-image>
             <span class="time">
             {{ $moment(record.updatedAt).format('YYYY-MM-DD HH:mm:ss') }}
@@ -47,11 +47,11 @@
               {{ record._id.slice(0, settings.record_id_simple_length) }}
             </small>
 
-            <span style="display: inline-block" @click="setClipboardData(record)" v-if="search.length ===0"
+            <span style="display: inline-block" v-if="search.length ===0"
                   :title="record.size">
               {{ simpleContent(record.digest) }}
             </span>
-            <span style="display: inline-block" @click="setClipboardData(record)" v-else
+            <span style="display: inline-block" v-else
                   :title="record.size" v-html="searchContent(record)"></span>
 
             <span class="time">
@@ -202,6 +202,8 @@ export default {
     showTool(record) {
       this.isShowTool = true;
       this.toolRecord = record;
+
+      return false;
     },
     getScore() {
       return this.$moment(new Date()).format('MMDDHHmmss');
@@ -216,6 +218,7 @@ export default {
       })
 
       this.$notify.success({message: '内容已添加到系统剪切板!', title: '操作成功', showClose: true});
+      this.$electron.ipcRenderer.send('min-window', {notify: 'ping'});
     },
     simpleContent(content) {
       let tail = content.length > this.settings.record_content_simple_length ? '...' : '';
@@ -395,6 +398,7 @@ body::-webkit-scrollbar-corner {
   cursor: pointer;
   padding: 5px 10px;
   font: 400 12px/24px '微软雅黑';
+  user-select: none;
 }
 
 #records li:hover {
@@ -465,8 +469,7 @@ body::-webkit-scrollbar-corner {
   padding: 0 5px;
   border-radius: 4px;
   line-height: 20px;
-  height: 20px
-;
+  height: 20px;
   margin-top: 2px;
 }
 

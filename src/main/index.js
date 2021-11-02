@@ -190,6 +190,11 @@ ipcMain.on('change-close-window-type', (err, args) => {
     closeWindowType = args.type;
 });
 
+ipcMain.on('min-window', (err, args) => {
+    if (mainWindow) {
+        mainWindow.minimize();
+    }
+});
 /**
  * Auto Updater
  *
