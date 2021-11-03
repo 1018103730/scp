@@ -56,6 +56,10 @@ function createWindow() {
     })
 
     mainWindow.on('close', closeWindow);
+
+    mainWindow.on('show', () => {
+        mainWindow.webContents.send('focus-search-input', 'ping');
+    })
 }
 
 function closeWindow(event) {

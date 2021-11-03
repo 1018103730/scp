@@ -1,79 +1,89 @@
 <template>
-  <keep-alive>
-    <div id="app">
+  <div id="app">
+    <el-backtop></el-backtop>
+    <div class="top-fix">
       <top-nav></top-nav>
+      <div class="clearfix"></div>
       <div class="search">
         <el-input :show-word-limit="show_word_limit"
                   :clearable="clearable"
                   placeholder="请输入搜索内容"
-                  :autofocus='autofocus'
                   prefix-icon="el-icon-search"
                   size="mini"
+                  id="search_input"
                   v-model="search">
         </el-input>
 
         <div class="tags" v-if="(Array.from(tags)).length > 0 ">
           常用tags:
-          <span v-for="tag in tags" @click="search === tag?search = '':search = tag"
-                :class="search !== tag?'default_tag':'search_tag'">
-            {{ tag }}
-          </span>
+          <el-select v-model="select_tag" filterable clearable placeholder="请选择" size="mini"
+                     @change="selectTagChange">
+            <el-option
+                v-for="tag in tags"
+                :key="tag"
+                :label="tag"
+                :value="tag">
+            </el-option>
+          </el-select>
         </div>
       </div>
+    </div>
 
-      <ul id="records">
-        <li v-for="record in records"
-            :style="{order:record.score}"
-            v-if="searchRecord(record)"
-            @dblclick="setClipboardData(record)">
-          <!--图片-->
-          <div v-if="record.type === 'image'">
-            <small :title="record._id" @click="showTool(record)">
-              {{ record._id.slice(0, settings.record_id_simple_length) }}
-            </small>
-            <el-image :title="record.size"
-                      class="clipboard-image"
-                      lazy
-                      style="height: 60px;"
-                      :src="parseImageFile(record.filepath)">
-            </el-image>
-            <span class="time">
+    <ul id="records">
+      <li v-for="record in records"
+          :style="{order:record.score}"
+          v-if="searchRecord(record)"
+          title="双击复制"
+          @dblclick="setClipboardData(record)">
+        <!--图片-->
+        <div v-if="record.type === 'image'">
+          <small :title="record._id" @click="showTool(record)">
+            {{ record._id.slice(0, settings.record_id_simple_length) }}
+          </small>
+          <el-image :title="record.size"
+                    class="clipboard-image"
+                    lazy
+                    style="height: 60px;"
+                    :src="parseImageFile(record.filepath)">
+          </el-image>
+          <span class="time">
             {{ $moment(record.updatedAt).format('YYYY-MM-DD HH:mm:ss') }}
           </span>
-          </div>
-          <!--文字-->
-          <div v-else-if="record.type === 'text'">
-            <small :title="record._id" @click="showTool(record)">
-              {{ record._id.slice(0, settings.record_id_simple_length) }}
-            </small>
+        </div>
+        <!--文字-->
+        <div v-else-if="record.type === 'text'">
+          <small :title="record._id" @click="showTool(record)">
+            {{ record._id.slice(0, settings.record_id_simple_length) }}
+          </small>
 
-            <span style="display: inline-block" v-if="search.length ===0"
-                  :title="record.size">
+          <span style="display: inline-block" v-if="search.length ===0"
+                :title="record.size">
               {{ simpleContent(record.digest) }}
             </span>
-            <span style="display: inline-block" v-else
-                  :title="record.size" v-html="searchContent(record)"></span>
+          <span style="display: inline-block" v-else
+                :title="record.size" v-html="searchContent(record)"></span>
 
-            <span class="time">
+          <span class="time">
             {{ $moment(record.updatedAt).format('YYYY-MM-DD HH:mm:ss') }}
           </span>
-          </div>
-        </li>
-      </ul>
-      <el-dialog title="小工具" :visible.sync="isShowTool" width="80%" v-if="toolRecord">
-        <el-button class="tool-btn"
-                   type="info" size="mini"
-                   round v-for="tool in tools[this.toolRecord.type]"
-                   @click="tool.method()">{{ tool.name }}
-        </el-button>
-      </el-dialog>
-    </div>
-  </keep-alive>
+        </div>
+      </li>
+    </ul>
+    <el-dialog title="小工具" :visible.sync="isShowTool" width="80%" v-if="toolRecord">
+      <el-button class="tool-btn"
+                 type="info" size="mini"
+                 round v-for="tool in tools[this.toolRecord.type]"
+                 @click="tool.method()">{{ tool.name }}
+      </el-button>
+    </el-dialog>
+  </div>
 </template>
 
 <script>
 import TopNav from "../components/TopNav";
 import fs from 'fs';
+
+const tagPrefix = 'tag@';
 
 export default {
   name: 'index',
@@ -81,6 +91,8 @@ export default {
     return {
       autofocus: true,
       clearable: true,
+      select_tag: null,
+      tag_prefix: tagPrefix,
       show_word_limit: true,
       search: '',
       records: [],
@@ -117,11 +129,22 @@ export default {
     this.$electron.ipcRenderer.on('refresh-records-data', () => {
       this.refreshRecordsData();
     })
+
+    this.$electron.ipcRenderer.on('focus-search-input', () => {
+      document.getElementById('search_input').focus();
+    });
   },
   beforeDestroy() {
     clearInterval(this.intervalKey);
   },
   methods: {
+    selectTagChange() {
+      if (this.select_tag.length > 0) {
+        this.search = this.tag_prefix + this.select_tag;
+      } else {
+        this.search = '';
+      }
+    },
     parseImageFile(filepath) {
       return this.$electron.nativeImage.createFromPath(filepath).toDataURL();
     },
@@ -225,12 +248,19 @@ export default {
       return content.slice(0, this.settings.record_content_simple_length) + tail;
     },
     searchContent(record) {
+      let isSearchTag = false;
+      let tagReg = new RegExp(this.tag_prefix, 'gim');
+      isSearchTag = tagReg.test(this.search)
+
+      let search = this.search.replace(this.tag_prefix, '', this.search);
       let {
         type,
         content,
         offset,
         searchTag
-      } = this.searchContentFromTags(record) || this.searchContentFromDigest(record) || this.searchContentFromTmpFile(record);
+      } = isSearchTag ? this.searchContentFromTags(record, search) :
+          (this.searchContentFromDigest(record) || this.searchContentFromTmpFile(record));
+
       if (!content) return;
 
       let searchContent = this.search;
@@ -251,12 +281,12 @@ export default {
 
       return content;
     },
-    searchContentFromTags(record) {
+    searchContentFromTags(record, search) {
       let tags = record.tags;
       if (tags.length === 0) return false;
       let searchTag = null;
       for (let tag of tags.split(',')) {
-        let offset = tag.indexOf(this.search);
+        let offset = tag.indexOf(search);
         if (offset === -1) continue;
 
         searchTag = tag;
@@ -292,10 +322,19 @@ export default {
     },
     searchRecord(record) {
       if (this.search.length === 0) return true;
+      let isSearchTag = false;
+      let tagReg = new RegExp(this.tag_prefix, 'gim');
+      if (tagReg.test(this.search)) {
+        isSearchTag = true
+      }
+      if (isSearchTag) {
+        let search = this.search.replace(this.tag_prefix, '', this.search);
+        return record.tags.indexOf(search) !== -1;
+      }
 
-      let tagsHas = () => {
-        return record.tags.indexOf(this.search) !== -1
-      };
+      // let tagsHas = () => {
+      //   return record.tags.indexOf(this.search) !== -1
+      // };
       let digestHas = () => {
         return record.digest.indexOf(this.search) !== -1
       };
@@ -303,7 +342,7 @@ export default {
         return this.parseTmpFileSync(record.filepath).indexOf(this.search) !== -1
       };
 
-      return tagsHas() || digestHas() || fileHas();
+      return digestHas() || fileHas();
     },
     refreshRecordsData() {
       this.$dbs.records.loadDatabase();
@@ -387,7 +426,7 @@ body::-webkit-scrollbar-corner {
 }
 
 #records {
-  margin-top: 20px;
+  margin-top: 120px;
   display: flex;
   flex-direction: column-reverse;
 }
@@ -461,20 +500,15 @@ body::-webkit-scrollbar-corner {
   font-size: 12px;
 }
 
-.tags span {
-  cursor: pointer;
-  background: #efefef;
-  display: inline-block;
-  margin-right: 3px;
-  padding: 0 5px;
-  border-radius: 4px;
-  line-height: 20px;
-  height: 20px;
-  margin-top: 2px;
+.clearfix {
+  clear: both;
 }
 
-.tags span.search_tag {
-  background: #444;
-  color: #fff;
+.top-fix {
+  width: 100%;
+  position: fixed;
+  top: 0px;
+  background: rgba(255, 255, 255, .95);
+  z-index: 9999;
 }
 </style>
