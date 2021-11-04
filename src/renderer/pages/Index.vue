@@ -236,7 +236,13 @@ export default {
       this.$electron.ipcRenderer.send('set-clipboard', {type: type, filepath: record.filepath})
 
       //更新排序score
-      this.$dbs.records.update({_id: record._id}, {$set: {score: this.getScore()}}, (err, numReplaced) => {
+      let reuse_time = record.reuse_time ? record.reuse_time : 0;
+      this.$dbs.records.update({_id: record._id}, {
+        $set: {
+          score: this.getScore(),
+          reuse_time: reuse_time + 1
+        }
+      }, (err, numReplaced) => {
         this.refreshRecordsData();
       })
 
@@ -350,6 +356,9 @@ export default {
       let num = 0;
       this.$dbs.records.find({/*todo 去除某些需要永久保存的数据*/}).sort({score: -1}).exec((err, docs) => {
             for (let doc of docs) {
+              //复用过的信息 不进行自动删除
+              if (doc.reuse_time > 0) continue;
+
               let canDelete = false;
               //清除超时数据
               let dayout = (Date.parse(new Date) - Date.parse(doc.updatedAt)) / 1000 / 24 / 3600;
@@ -364,7 +373,7 @@ export default {
           }
       );
 
-      this.$dbs.records.find({}, (err, data) => {
+      this.$dbs.records.find({}).sort({score: -1}).exec((err, data) => {
         //设置tags
         let tags = '';
         for (let record of data) {
