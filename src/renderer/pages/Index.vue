@@ -237,12 +237,15 @@ export default {
 
       //更新排序score
       let reuse_time = record.reuse_time ? record.reuse_time : 0;
-      this.$dbs.records.update({_id: record._id}, {
-        $set: {
-          score: this.getScore(),
-          reuse_time: reuse_time + 1
-        }
-      }, (err, numReplaced) => {
+      let updateData = {
+        score: this.getScore(),
+        reuse_time: reuse_time + 1
+      }
+      if (record.tags.indexOf('复用') === -1) {
+        updateData.tags = record.tags + ',复用';
+      }
+
+      this.$dbs.records.update({_id: record._id}, {$set: updateData}, (err, numReplaced) => {
         this.refreshRecordsData();
       })
 
