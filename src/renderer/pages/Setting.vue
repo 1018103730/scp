@@ -8,8 +8,9 @@
       <el-form-item label="内容显示长度">
         <el-input v-model="form.record_content_simple_length"></el-input>
       </el-form-item>
-      <el-form-item label="最大存储数量">
+      <el-form-item label="未复用最大存储数量">
         <el-input v-model="form.maximum_records_num"></el-input>
+        <span class="help-info"><i class="el-icon-warning"></i> 当前已存储 {{ count }} 条未复用数据!</span>
       </el-form-item>
       <el-form-item label="最长存储时间">
         <el-input v-model="form.time_since_last_update_day"></el-input>
@@ -36,7 +37,9 @@ import dbs from "../datastore";
 export default {
   name: "settings",
   data() {
-    return {}
+    return {
+      count: 0,
+    }
   },
   computed: {
     form() {
@@ -45,10 +48,13 @@ export default {
   },
   components: {TopNav},
   mounted() {
+    dbs.records.count({reuse_time: {$lte: 0}}, (err, count) => {
+      this.count = count;
+    });
   },
   methods: {
     onSubmit() {
-      this.$store.commit('Settings/updateSettings', this.form)
+      this.$store.commit('Settings/updateSettings', this.form);
       dbs.settings.update({_id: this.form._id}, {$set: this.form}, (err, numReplaced) => {
         this.$electron.ipcRenderer.send('change-close-window-type', {type: this.form.close_window_type});
       })
@@ -60,5 +66,10 @@ export default {
 <style>
 #settings .from {
   margin: 20px;
+}
+
+.help-info {
+  color: #888;
+  font-size: 12px;
 }
 </style>

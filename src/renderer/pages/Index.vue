@@ -35,38 +35,33 @@
           v-if="searchRecord(record)"
           title="双击复制"
           @dblclick="setClipboardData(record)">
+        <small :title="record._id" @click="showTool(record)">
+          {{ record._id.slice(0, settings.record_id_simple_length) }}
+        </small>
+
         <!--图片-->
-        <div v-if="record.type === 'image'">
-          <small :title="record._id" @click="showTool(record)">
-            {{ record._id.slice(0, settings.record_id_simple_length) }}
-          </small>
-          <el-image :title="record.size"
+        <span v-if="record.type === 'image'">
+          <el-image :title="showReuseTime(record.reuse_time)"
                     class="clipboard-image"
                     lazy
-                    style="height: 60px;"
+                    style="height: 100px;"
                     :src="parseImageFile(record.filepath)">
           </el-image>
-          <span class="time">
-            {{ $moment(record.updatedAt).format('YYYY-MM-DD HH:mm:ss') }}
-          </span>
-        </div>
+        </span>
         <!--文字-->
-        <div v-else-if="record.type === 'text'">
-          <small :title="record._id" @click="showTool(record)">
-            {{ record._id.slice(0, settings.record_id_simple_length) }}
-          </small>
-
+        <span v-else-if="record.type === 'text'">
           <span style="display: inline-block" v-if="search.length ===0"
-                :title="record.size">
+                :title="showReuseTime(record.reuse_time)">
               {{ simpleContent(record.digest) }}
             </span>
           <span style="display: inline-block" v-else
-                :title="record.size" v-html="searchContent(record)"></span>
+                :title="record.size" v-html="searchContent(record)">
+          </span>
+        </span>
 
-          <span class="time">
+        <span class="time">
             {{ $moment(record.updatedAt).format('YYYY-MM-DD HH:mm:ss') }}
           </span>
-        </div>
       </li>
     </ul>
     <el-dialog title="小工具" :visible.sync="isShowTool" width="80%" v-if="toolRecord">
@@ -138,6 +133,9 @@ export default {
     clearInterval(this.intervalKey);
   },
   methods: {
+    showReuseTime(time) {
+      return '此记录已复用 ' + time + ' 次';
+    },
     selectTagChange() {
       if (this.select_tag.length > 0) {
         this.search = this.tag_prefix + this.select_tag;
