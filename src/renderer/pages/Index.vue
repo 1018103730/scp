@@ -1,46 +1,47 @@
 <template>
-  <div id="app">
-    <el-backtop></el-backtop>
-    <div class="top-fix">
-      <top-nav></top-nav>
-      <div class="clearfix"></div>
-      <div class="search">
-        <el-input :show-word-limit="show_word_limit"
-                  :clearable="clearable"
-                  placeholder="请输入搜索内容"
-                  prefix-icon="el-icon-search"
-                  size="mini"
-                  id="search_input"
-                  v-model="search">
-        </el-input>
+  <keep-alive>
+    <div id="app">
+      <el-backtop></el-backtop>
+      <div class="top-fix">
+        <top-nav></top-nav>
+        <div class="clearfix"></div>
+        <div class="search">
+          <el-input :show-word-limit="show_word_limit"
+                    :clearable="clearable"
+                    placeholder="请输入搜索内容"
+                    prefix-icon="el-icon-search"
+                    size="mini"
+                    id="search_input"
+                    v-model="search">
+          </el-input>
 
-        <div class="tags" v-if="(Array.from(tags)).length > 0 ">
-          常用tags:
-          <el-select v-model="select_tag" filterable clearable placeholder="请选择" size="mini"
-                     @change="selectTagChange">
-            <el-option
-                v-for="tag in tags"
-                :key="tag"
-                :label="tag"
-                :value="tag">
-            </el-option>
-          </el-select>
+          <div class="tags" v-if="(Array.from(tags)).length > 0 ">
+            常用tags:
+            <el-select v-model="select_tag" filterable clearable placeholder="请选择" size="mini"
+                       @change="selectTagChange">
+              <el-option
+                  v-for="tag in tags"
+                  :key="tag"
+                  :label="tag"
+                  :value="tag">
+              </el-option>
+            </el-select>
+          </div>
         </div>
       </div>
-    </div>
 
-    <ul id="records">
-      <li v-for="record in records"
-          :style="{order:record.score}"
-          v-if="searchRecord(record)"
-          title="双击复制"
-          @dblclick="setClipboardData(record)">
-        <small :title="record._id" @click="showTool(record)">
-          {{ record._id.slice(0, settings.record_id_simple_length) }}
-        </small>
+      <ul id="records">
+        <li v-for="record in records"
+            :style="{order:record.score}"
+            v-if="searchRecord(record)"
+            title="双击复制"
+            @dblclick="setClipboardData(record)">
+          <small :title="record._id" @click="showTool(record)">
+            {{ record._id.slice(0, settings.record_id_simple_length) }}
+          </small>
 
-        <!--图片-->
-        <span v-if="record.type === 'image'">
+          <!--图片-->
+          <span v-if="record.type === 'image'">
           <el-image :title="showReuseTime(record.reuse_time)"
                     class="clipboard-image"
                     lazy
@@ -48,8 +49,8 @@
                     :src="parseImageFile(record.filepath)">
           </el-image>
         </span>
-        <!--文字-->
-        <span v-else-if="record.type === 'text'">
+          <!--文字-->
+          <span v-else-if="record.type === 'text'">
           <span style="display: inline-block" v-if="search.length ===0"
                 :title="showReuseTime(record.reuse_time)">
               {{ simpleContent(record.digest) }}
@@ -59,19 +60,20 @@
           </span>
         </span>
 
-        <span class="time">
+          <span class="time">
             {{ $moment(record.updatedAt).format('YYYY-MM-DD HH:mm:ss') }}
           </span>
-      </li>
-    </ul>
-    <el-dialog title="小工具" :visible.sync="isShowTool" width="80%" v-if="toolRecord">
-      <el-button class="tool-btn"
-                 type="info" size="mini"
-                 round v-for="tool in tools[this.toolRecord.type]"
-                 @click="tool.method()">{{ tool.name }}
-      </el-button>
-    </el-dialog>
-  </div>
+        </li>
+      </ul>
+      <el-dialog title="小工具" :visible.sync="isShowTool" width="80%" v-if="toolRecord">
+        <el-button class="tool-btn"
+                   type="info" size="mini"
+                   round v-for="tool in tools[this.toolRecord.type]"
+                   @click="tool.method()">{{ tool.name }}
+        </el-button>
+      </el-dialog>
+    </div>
+  </keep-alive>
 </template>
 
 <script>
