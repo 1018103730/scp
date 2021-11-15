@@ -96,6 +96,14 @@ function getMd5Factor(data) {
     return data.slice(...start) + data.slice(...middle) + data.slice(...end);
 }
 
+app.setLoginItemSettings({
+    openAtLogin: true, // Boolean 在登录时启动应用
+    openAsHidden: true, // Boolean (可选) mac 表示以隐藏的方式启动应用。~~~~
+    // path: '', String (可选) Windows - 在登录时启动的可执行文件。默认为 process.execPath.
+    // args: [] String Windows - 要传递给可执行文件的命令行参数。默认为空数组。注意用引号将路径换行。
+});
+
+
 app.on('ready', () => {
     globalShortcut.register('Shift+Ctrl+I', () => {
         if (mainWindow) {
