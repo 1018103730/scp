@@ -11,6 +11,8 @@ const settings = {
     margin_length_when_search: 15,
     //关闭窗口方式 background/exit
     close_window_type: 'background',
+    //是否开机自启
+    is_auto_run: 1,
 }
 
 export default settings

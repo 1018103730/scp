@@ -152,7 +152,12 @@ export default {
       return fs.readFile(filepath, 'utf-8', callback);
     },
     parseTmpFileSync(filepath) {
-      return fs.readFileSync(filepath, 'utf-8');
+      try {
+        return fs.readFileSync(filepath, 'utf-8');
+      } catch (e) {
+        console.log(e);
+        return '';
+      }
     },
     toolSetTags() {
       this.$prompt('多个标签可用","分隔', '标签设置', {
@@ -318,6 +323,8 @@ export default {
       return {type: 'digest', content: content, offset: offset};
     },
     searchContentFromTmpFile(record) {
+      if (!record.has_tmp_file) return false;
+
       let content = this.parseTmpFileSync(record.filepath);
 
       //html实体化
@@ -341,13 +348,12 @@ export default {
         return record.tags.indexOf(search) !== -1;
       }
 
-      // let tagsHas = () => {
-      //   return record.tags.indexOf(this.search) !== -1
-      // };
       let digestHas = () => {
         return record.digest.indexOf(this.search) !== -1
       };
       let fileHas = () => {
+        if (!record.has_tmp_file) return false;
+
         return this.parseTmpFileSync(record.filepath).indexOf(this.search) !== -1
       };
 

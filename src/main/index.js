@@ -5,6 +5,8 @@ import md5 from 'md5';
 import moment from "moment";
 import Datastore from "nedb";
 
+const StrLimit = 800;
+
 // app.disableHardwareAcceleration();
 
 /**
@@ -85,24 +87,36 @@ function getMd5Factor(data) {
     let len = parseInt(data.length);
 
     //长度小于指定长度 不做hash因子提取
-    if (len <= 1000) {
+    if (len <= StrLimit) {
         return data;
     }
 
-    let start = [0, 100];
-    let middle = [parseInt(len / 2) - 50, parseInt(len / 2) + 50];
-    let end = [len - 100, len];
+    let hashMLen = parseInt(StrLimit / 8)
+
+    let start = [0, hashMLen * 2];
+    let middle = [parseInt(len / 2) - hashMLen, parseInt(len / 2) + hashMLen];
+    let end = [len - hashMLen * 2, len];
 
     return data.slice(...start) + data.slice(...middle) + data.slice(...end);
 }
 
-app.setLoginItemSettings({
-    openAtLogin: true, // Boolean 在登录时启动应用
-    openAsHidden: true, // Boolean (可选) mac 表示以隐藏的方式启动应用。~~~~
-    // path: '', String (可选) Windows - 在登录时启动的可执行文件。默认为 process.execPath.
-    // args: [] String Windows - 要传递给可执行文件的命令行参数。默认为空数组。注意用引号将路径换行。
+//开机自启
+let settingsDBFilename = path.join(app.getPath('userData'), '/saves/scp_settings.db')
+const settings = new Datastore({
+    autoload: true,
+    timestampData: true,
+    filename: settingsDBFilename
 });
-
+settings.findOne({}, (err, data) => {
+    console.log(data)
+    if (data.is_auto_run === 1) {
+        console.log('开机自启!');
+        app.setLoginItemSettings({
+            openAtLogin: true, // Boolean 在登录时启动应用
+            openAsHidden: true, // Boolean (可选) mac 表示以隐藏的方式启动应用。~~~~
+        });
+    }
+})
 
 app.on('ready', () => {
     globalShortcut.register('Shift+Ctrl+I', () => {
@@ -139,27 +153,39 @@ app.on('ready', () => {
                 records.insert({
                     hash: hash,
                     type: type,
-                    digest: type === 'text' ? ClipboardData.slice(0, 100) : '',
+                    digest: type === 'text' ? ClipboardData.slice(0, StrLimit) : '',
                     filepath: filepath,
                     score: score,
                     tags: type === 'text' ? '文字' : '图片',
-                    reuse_time: 0
+                    reuse_time: 0,
+                    has_tmp_file: false
                 });
 
-                //发送信息到渲染页面
-                fs.writeFile(filepath, ClipboardData, 'utf-8', () => {
-                    //设置文件大小
-                    fs.stat(filepath, (err, stat) => {
-                        //更新数据中的缓存文件大小
-                        records.update({hash: hash}, {$set: {size: stat.size}}, (err, numReplaced) => {
-                            //通知渲染线程刷新界面
-                            if (mainWindow) {
-                                mainWindow.webContents.send('refresh-records-data', 'ping');
-                            }
+                //图案或者文字超标才会写入缓存文件
+                if (type === 'image' || ClipboardData.length >= StrLimit) {
+                    //发送信息到渲染页面
+                    fs.writeFile(filepath, ClipboardData, 'utf-8', () => {
+                        //设置文件大小
+                        fs.stat(filepath, (err, stat) => {
+                            //更新数据中的缓存文件大小
+                            records.update({hash: hash}, {
+                                $set: {
+                                    size: stat.size,
+                                    hash_tmp_file: true
+                                }
+                            }, (err, numReplaced) => {
+                                //通知渲染线程刷新界面
+                                if (mainWindow) {
+                                    mainWindow.webContents.send('refresh-records-data', 'ping');
+                                }
+                            })
                         })
                     })
-
-                })
+                } else {
+                    if (mainWindow) {
+                        mainWindow.webContents.send('refresh-records-data', 'ping');
+                    }
+                }
             }
         })
     }, 200)

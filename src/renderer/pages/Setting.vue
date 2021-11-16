@@ -22,6 +22,10 @@
         <el-radio v-model="form.close_window_type" label="background">后台运行</el-radio>
         <el-radio v-model="form.close_window_type" label="exit">退出程序</el-radio>
       </el-form-item>
+      <el-form-item label="开始启动">
+        <el-radio v-model="form.is_auto_run" label="1">开机启动</el-radio>
+        <el-radio v-model="form.is_auto_run" label="0">不自动启动</el-radio>
+      </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="onSubmit">修改设置</el-button>
         <el-button>取消</el-button>
