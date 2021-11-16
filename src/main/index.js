@@ -145,7 +145,7 @@ app.on('ready', () => {
         }
 
         filepath = path.join(app.getPath('userData'), '/caches/' + filename + '.tmp')
-        let hash = md5(filepath);
+        let hash = filename;
 
         records.count({hash: hash}, (err, count) => {
             if (count === 0) {
@@ -154,7 +154,7 @@ app.on('ready', () => {
                     hash: hash,
                     type: type,
                     digest: type === 'text' ? ClipboardData.slice(0, StrLimit) : '',
-                    filepath: filepath,
+                    filepath: ClipboardData.length >= StrLimit ? filepath : null,
                     score: score,
                     tags: type === 'text' ? '文字' : '图片',
                     reuse_time: 0,
@@ -210,9 +210,13 @@ ipcMain.on('set-clipboard', (err, args) => {
         let image = nativeImage.createFromPath(args.filepath);
         clipboard.writeImage(image);
     } else {
-        fs.readFile(args.filepath, 'utf-8', (err, data) => {
-            clipboard.writeText(data);
-        });
+        if (args.hash_tmp_file) {
+            fs.readFile(args.filepath, 'utf-8', (err, data) => {
+                clipboard.writeText(data);
+            });
+        } else {
+            clipboard.writeText(args.digest);
+        }
     }
 });
 

@@ -237,8 +237,7 @@ export default {
       return this.$moment(new Date()).format('MMDDHHmmss');
     },
     setClipboardData(record) {
-      let type = record.type;
-      this.$electron.ipcRenderer.send('set-clipboard', {type: type, filepath: record.filepath})
+      this.$electron.ipcRenderer.send('set-clipboard', record)
 
       //更新排序score
       let reuse_time = record.reuse_time ? record.reuse_time : 0;
