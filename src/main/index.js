@@ -108,9 +108,7 @@ const settings = new Datastore({
     filename: settingsDBFilename
 });
 settings.findOne({}, (err, data) => {
-    console.log(data)
-    if (data.is_auto_run === 1) {
-        console.log('开机自启!');
+    if (data && data.is_auto_run === 1) {
         app.setLoginItemSettings({
             openAtLogin: true, // Boolean 在登录时启动应用
             openAsHidden: true, // Boolean (可选) mac 表示以隐藏的方式启动应用。~~~~
@@ -171,7 +169,7 @@ app.on('ready', () => {
                             records.update({hash: hash}, {
                                 $set: {
                                     size: stat.size,
-                                    hash_tmp_file: true
+                                    has_tmp_file: true
                                 }
                             }, (err, numReplaced) => {
                                 //通知渲染线程刷新界面

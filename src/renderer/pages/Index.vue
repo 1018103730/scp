@@ -187,29 +187,52 @@ export default {
     },
     toolParsePhone() {
       let reg = /1[345789][0-9]{9}/igm;
-      this.parseTmpFile(this.toolRecord.filepath, (err, data) => {
-        let phones = data.match(reg);
+      if (this.toolRecord.hash_tmp_file) {
+        this.parseTmpFile(this.toolRecord.filepath, (err, data) => {
+          let phones = data.match(reg);
+          if (!phones) {
+            this.$message('无可提取的手机号码!');
+            return;
+          }
+
+          this.$alert(phones.join(' '), '处理结果');
+        })
+      } else {
+        let phones = this.toolRecord.digest.match(reg);
         if (!phones) {
           this.$message('无可提取的手机号码!');
           return;
         }
 
         this.$alert(phones.join(' '), '处理结果');
-      })
+      }
     },
     toolShowContent() {
-      this.parseTmpFile(this.toolRecord.filepath, (err, data) => {
-        this.$alert(data, '全部内容', {
+      console.log(this.toolRecord.has_tmp_file);
+      if (this.toolRecord.has_tmp_file) {
+        this.parseTmpFile(this.toolRecord.filepath, (err, data) => {
+          this.$alert(data, '全部内容', {
+            closeOnClickModal: true,
+            closeOnPressEscape: true
+          });
+        });
+      } else {
+        this.$alert(this.toolRecord.digest, '全部内容', {
           closeOnClickModal: true,
           closeOnPressEscape: true
         });
-      });
+      }
     },
     toolTrim() {
-      this.parseTmpFile(this.toolRecord.filepath, (err, data) => {
-        let content = data.replace(/(^\s*)|(\s*$)/g, "");
+      if (this.toolRecord.has_tmp_file) {
+        this.parseTmpFile(this.toolRecord.filepath, (err, data) => {
+          let content = data.replace(/(^\s*)|(\s*$)/g, "");
+          this.$alert(content, '处理结果');
+        });
+      } else {
+        let content = this.toolRecord.digest.replace(/(^\s*)|(\s*$)/g, "");
         this.$alert(content, '处理结果');
-      });
+      }
     },
     toolDeleteRecord() {
       this.$dbs.records.remove({_id: this.toolRecord._id}, {}, (err, numRemoved) => {
