@@ -12,9 +12,9 @@ const records = new Datastore({
     timestampData: true,
     filename: recordsDBFilename,
     // afterSerialization(doc) {
-    //     let cipher = crypto.createCipher('aes192', secret)refresh-records-data
-    //     let enc = cipher.update(doc, 'utf8', 'hex')
-    //     enc += cipher.final('hex')
+    //     let cipher = crypto.createCipher('aes192', secret);
+    //     let enc = cipher.update(doc, 'utf8', 'hex');
+    //     enc += cipher.final('hex');
     //
     //     return enc
     // },

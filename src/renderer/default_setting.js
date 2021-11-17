@@ -12,7 +12,7 @@ const settings = {
     //关闭窗口方式 background/exit
     close_window_type: 'background',
     //是否开机自启
-    is_auto_run: 1,
+    is_auto_run: "1",
 }
 
 export default settings

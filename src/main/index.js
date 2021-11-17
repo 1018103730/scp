@@ -142,6 +142,9 @@ app.on('ready', () => {
             filename = md5(getMd5Factor(ClipboardData));
         }
 
+        //剪切板无内容,不触发记录的逻辑
+        if (ClipboardData.length <= 0) return;
+
         filepath = path.join(app.getPath('userData'), '/caches/' + filename + '.tmp')
         let hash = filename;
 
