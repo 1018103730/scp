@@ -108,7 +108,7 @@ const settings = new Datastore({
     filename: settingsDBFilename
 });
 settings.findOne({}, (err, data) => {
-    if (data && data.is_auto_run === 1) {
+    if (data && data.is_auto_run === "1") {
         app.setLoginItemSettings({
             openAtLogin: true, // Boolean 在登录时启动应用
             openAsHidden: true, // Boolean (可选) mac 表示以隐藏的方式启动应用。~~~~
